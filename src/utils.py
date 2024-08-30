@@ -166,7 +166,7 @@ def construct_labeled_oracle_predictions_path(
 
     results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
     if args.multi_model:
-        output_fpath = results_dir / f"labeled_oracle_{model_group}_test.json"
+        output_fpath = results_dir / f"labeled_oracle_test.json"
     else:
         output_fpath = results_dir / "labeled_oracle_test.json"
     output_fpath = Path(output_fpath)

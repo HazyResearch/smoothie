@@ -104,9 +104,7 @@ def run_pick_random_baseline(args, data_config, model_group):
         sequence_texts.append(trial_generations)
 
     # Save to file
-    results = {
-        "generations": sequence_texts,
-    }
+    results = {"generations": sequence_texts}
     
     # Create directory for output path if it doesn't exist
     output_fpath.parent.mkdir(parents=True, exist_ok=True)

@@ -65,7 +65,7 @@ do
     # Evaluate
     python -m src.evaluate.evaluate \
         --dataset_config $dataset_config \
-        --results_dir $RESULTS_DIR --redo
+        --results_dir $RESULTS_DIR --redo --multi_model
 
     echo "Finished processing $dataset_config"
     echo "----------------------------------------"
