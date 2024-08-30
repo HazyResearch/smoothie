@@ -17,9 +17,15 @@ import pandas as pd
 from src.console import console
 from src.data_utils import construct_processed_dataset_paths
 from src.evaluate.evaluate import evaluate_predictions
-from src.utils import (check_args, clean_generations,
-                       construct_labeled_oracle_predictions_path,
-                       load_data_config, load_predictions, get_references)
+from src.utils import (
+    check_args,
+    clean_generations,
+    construct_labeled_oracle_predictions_path,
+    load_data_config,
+    load_predictions,
+    get_references,
+)
+from src.ensembles import MODEL_GROUPS
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, help="LLM to use")
@@ -57,10 +63,6 @@ parser.add_argument(
     help="Redo evaluation even if results already exist. Otherwise, we only evaluate methods/metrics which aren't already evaluated.",
 )
 parser.add_argument(
-    "--model_group",
-    help="The models to use for predictions",
-)
-parser.add_argument(
     "--multi_prompt",
     action="store_true",
 )
@@ -90,13 +92,18 @@ TASK2METRIC = {
     "xsum": "rouge2",
 }
 
-def main(args):
-    np.random.seed(args.seed)
-    console.log(f"Setting random seed to {args.seed}")
-    check_args(args)
-    data_config = load_data_config(args)
+
+def run_labeled_oracle(args, data_config, model_group):
+    """
+    Run the labeled oracle baseline.
+
+    Args:
+        args (argparse.Namespace): arguments from the command line
+        data_config (dict): data config
+        model_group (str): name of the model group
+    """
     output_fpath = construct_labeled_oracle_predictions_path(
-        data_config, args.model, args
+        data_config=data_config, model_group=model_group, args=args
     )
     predictions_dir = output_fpath.parent
 
@@ -104,12 +111,22 @@ def main(args):
         console.log(f"Results file already exists at {output_fpath}. Skipping.")
         return
 
-    train_generations = load_predictions(predictions_dir, "train", args)
-    test_generations = load_predictions(predictions_dir, "test", args)
+    train_generations = load_predictions(
+        data_config=data_config,
+        split="train",
+        model_group=model_group,
+        args=args,
+    )
+    test_generations = load_predictions(
+        data_config=data_config,
+        split="test",
+        model_group=model_group,
+        args=args,
+    )
 
     train_data_path, _ = construct_processed_dataset_paths(args)
     with jsonlines.open(train_data_path) as file:
-        train_dataset = list(file.iter())   
+        train_dataset = list(file.iter())
 
     train_references = np.array(get_references(train_dataset), dtype=object)
     train_tasks = np.array([train_df["task_name"] for train_df in train_dataset])
@@ -126,17 +143,20 @@ def main(args):
         sampled_train_tasks = train_tasks[sampled_train_indices]
         generator_scores = []
         for generator_idx in range(train_generations.shape[1]):
-            sampled_generations = train_generations[:, generator_idx][sampled_train_indices]
-            generator_scores.append(evaluate_predictions(
-                generations=sampled_generations,
-                references=sampled_train_references,
-                task_names=sampled_train_tasks,
-                metric_map=TASK2METRIC,
-            ))
+            sampled_generations = train_generations[:, generator_idx][
+                sampled_train_indices
+            ]
+            generator_scores.append(
+                evaluate_predictions(
+                    generations=sampled_generations,
+                    references=sampled_train_references,
+                    task_names=sampled_train_tasks,
+                    metric_map=TASK2METRIC,
+                )
+            )
         best_generator_idx = np.argmax(generator_scores)
         best_generator_test_generations = test_generations[:, best_generator_idx]
         labeled_oracle_generations.append(best_generator_test_generations.tolist())
-            
 
     results = {
         "generations": labeled_oracle_generations,
@@ -144,6 +164,28 @@ def main(args):
     console.log(f"Saving results to {output_fpath}")
     output_fpath.write_text(json.dumps(results, default=int, indent=4))
 
+
+
+def main(args):
+    np.random.seed(args.seed)
+    console.log(f"Setting random seed to {args.seed}")
+    check_args(args)
+    data_config = load_data_config(args)
+    if args.multi_model:
+        for model_group in MODEL_GROUPS.keys():
+            run_labeled_oracle(
+                args=args, 
+                data_config=data_config, 
+                model_group=model_group
+            )
+
+    else:
+        run_labeled_oracle(
+            args=args, 
+            data_config=data_config, 
+            model_group=""
+        )
+    
 
 if __name__ == "__main__":
     args = parser.parse_args()

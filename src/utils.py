@@ -1,8 +1,3 @@
-# TODO: Remove unused imports
-# TODO: Remove unused functions
-# TODO: Check comments for each function
-# TODO: Add type hints to functions
-
 import argparse
 import json
 from pathlib import Path
@@ -15,15 +10,9 @@ from fastembed import TextEmbedding
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.constants import HF_MODEL_MAX_LENGTHS, HF_MODELS
+from src.ensembles import MODEL_GROUPS
 
 transformers.logging.set_verbosity_error()
-
-
-# Model groups for multi-model experiments
-MODEL_GROUPS = {
-    "7b": ["mistral-7b", "llama-2-7b", "vicuna-7b", "gemma-7b", "nous-capybara"],
-    "3b": ["pythia-2.8b", "gemma-2b", "incite-3b", "dolly-3b"]
-}
 
 
 def check_args(args: argparse.Namespace):
@@ -35,8 +24,8 @@ def check_args(args: argparse.Namespace):
     """
     if not args.multi_model and not args.multi_prompt:
         raise ValueError("Either --multi_model or --multi_prompt must be set.")
-    if args.multi_model and args.model_group is None:
-        raise ValueError("--multi_model is set but the --model_group is not specified.")
+    if args.multi_model and args.model:
+        raise ValueError("Cannot specify both --multi_model and --model.")
 
 
 def load_data_config(args: argparse.Namespace) -> Dict:
@@ -45,67 +34,70 @@ def load_data_config(args: argparse.Namespace) -> Dict:
 
     Args:
         args (argparse.Namespace): arguments from the command line
-    
+
     Returns:
         dict: the data config
     """
     return yaml.load(Path(args.dataset_config).read_text(), Loader=yaml.FullLoader)
 
 
-def construct_predictions_dir_path(data_config: Dict, args: argparse.Namespace, model: str) -> Path:
+def construct_generations_path(
+    data_config: Dict, model: str, args: argparse.Namespace
+) -> Tuple[Path, Path]:
     """
-    Construct the directory path where train and test predictions will be saved.
-
-    Args:
-        data_config (dict): data config
-        args (argparse.Namespace): arguments from the command line
-        model (str): model name
-    
-    Returns:
-        Path: the directory path
-    """
-    if args.multi_model:
-        results_dir = Path(args.results_dir) / data_config["dataset"] / args.model_group
-        results_dir.mkdir(exist_ok=True, parents=True)
-    else:
-        results_dir = Path(args.results_dir) / data_config["dataset"] / model
-        results_dir.mkdir(exist_ok=True, parents=True)
-
-    return results_dir
-
-
-def construct_predictions_path(data_config: Dict, model: str, args: argparse.Namespace) -> Tuple[Path, Path]:
-    """
-    Construct the paths where train and test predictions will be saved.
+    Construct the paths where train and test generations will be saved.
 
     Args:
         data_config (dict): data config
         model (str): model name
         args (argparse.Namespace): arguments from the command line
-    
+
     Returns:
         Tuple[Path, Path]: the train and test predictions paths
     """
-    results_dir = construct_predictions_dir_path(data_config, args, model)
-
-    if args.multi_prompt:
-        file_name = "individual_"
-    else:
+    if args.multi_model:
+        results_dir = Path(args.results_dir) / data_config["dataset"] / "model_gens"
+        results_dir.mkdir(exist_ok=True, parents=True)
         file_name = f"{model}_"
+    else:
+        results_dir = Path(args.results_dir) / data_config["dataset"] / model
+        results_dir.mkdir(exist_ok=True, parents=True)
+        file_name = "individual_"
 
     if args.n_generations > 1:
         file_name += f"{args.n_generations}_gens_"
-
-    if args.test:
-        file_name += "test_"
 
     train_output_fpath = results_dir / f"{file_name}train.json"
     test_output_fpath = results_dir / f"{file_name}test.json"
     return train_output_fpath, test_output_fpath
 
 
+def construct_method_predictions_dir_path(
+    data_config: Dict, args: argparse.Namespace, model_group: str = None
+) -> Path:
+    """
+    Construct the directory path where test predictions will be saved for a given method.
+
+    Args:
+        data_config (dict): data config
+        args (argparse.Namespace): arguments from the command line
+        model (str): model name
+
+    Returns:
+        Path: the directory path
+    """
+    if args.multi_model:
+        results_dir = Path(args.results_dir) / data_config["dataset"] / model_group
+        results_dir.mkdir(exist_ok=True, parents=True)
+    else:
+        results_dir = Path(args.results_dir) / data_config["dataset"] / args.model
+        results_dir.mkdir(exist_ok=True, parents=True)
+
+    return results_dir
+
+
 def construct_smoothie_predictions_path(
-    data_config: Dict, model: str, args: argparse.Namespace
+    data_config: Dict, model: str, model_group: str, args: argparse.Namespace
 ) -> Path:
     """
     Construct the paths where train and test predictions will be saved for Smoothie.
@@ -113,14 +105,15 @@ def construct_smoothie_predictions_path(
     Args:
         data_config (dict): data config
         model (str): model name
+        model_group (str): model group name
         args (argparse.Namespace): arguments from the command line
-    
+
     Returns:
         Path: the test predictions path
     """
-    results_dir = construct_predictions_dir_path(data_config, args, model)
+    results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
     if args.multi_model:
-        output_fpath = str(results_dir) + f"/smoothie_{args.type}_{args.model_group}_"
+        output_fpath = str(results_dir) + f"/smoothie_{args.type}_{model_group}_"
     else:
         output_fpath = str(results_dir) + f"/smoothie_{args.type}_"
     if args.type == "sample_dependent" and args.n_generations == 1:
@@ -137,46 +130,43 @@ def construct_smoothie_predictions_path(
 
 
 def construct_pick_random_predictions_path(
-    data_config: Dict, model: str, args: argparse.Namespace
+    data_config: Dict, model_group: str, args: argparse.Namespace
 ) -> Path:
     """
     Construct the paths where train and test predictions will be saved for the pick random baseline.
 
     Args:
         data_config (dict): data config
-        model (str): model name
+        model_group (str): model group name
         args (argparse.Namespace): arguments from the command line
-    
+
     Returns:
         Path: the test predictions path
     """
-    results_dir = construct_predictions_dir_path(data_config, args, model)
-    if args.multi_model:
-        output_fpath = results_dir / f"pick_random_{args.model_group}_test.json"
-    else:
-        output_fpath = results_dir / "pick_random_test.json"
+    results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
+    output_fpath = results_dir / f"pick_random_test.json"
     output_fpath = Path(output_fpath)
     return output_fpath
 
 
 def construct_labeled_oracle_predictions_path(
-    data_config: Dict, model: str, args: argparse.Namespace
+    data_config: Dict, model_group: str, args: argparse.Namespace
 ) -> Path:
     """
     Construct the paths where train and test predictions will be saved for the labeled oracle baseline.
 
     Args:
         data_config (dict): data config
-        model (str): model name
+        model_group (str): model group name
         args (argparse.Namespace): arguments from the command line
-    
+
     Returns:
         Path: the test predictions path
     """
 
-    results_dir = construct_predictions_dir_path(data_config, args, model)
+    results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
     if args.multi_model:
-        output_fpath = results_dir / f"labeled_oracle_{args.model_group}_test.json"
+        output_fpath = results_dir / f"labeled_oracle_{model_group}_test.json"
     else:
         output_fpath = results_dir / "labeled_oracle_test.json"
     output_fpath = Path(output_fpath)
@@ -184,7 +174,7 @@ def construct_labeled_oracle_predictions_path(
 
 
 def construct_labeled_knn_predictions_path(
-    data_config: Dict, model: str, args: argparse.Namespace
+    data_config: Dict, model: str, model_group: str, args: argparse.Namespace
 ):
     """
     Construct the paths where train and test predictions will be saved for the labeled knn baseline.
@@ -192,16 +182,18 @@ def construct_labeled_knn_predictions_path(
     Args:
         data_config (dict): data config
         model (str): model name
+        model_group (str): model group name
         args (argparse.Namespace): arguments from the command line
     """
 
-    results_dir = construct_predictions_dir_path(data_config, args, model)
-    output_fpath = results_dir / f"labeled_knn_{args.model_group}_test.json"
+    results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
+    output_fpath = results_dir / f"labeled_knn_{model_group}_test.json"
     output_fpath = Path(output_fpath)
     return output_fpath
 
+
 def construct_mbr_predictions_path(
-    data_config: Dict, model: str, args: argparse.Namespace
+    data_config: Dict, model: str, model_group: str, args: argparse.Namespace
 ) -> Path:
     """
     Construct the paths where train and test predictions will be saved for Smoothie.
@@ -209,20 +201,20 @@ def construct_mbr_predictions_path(
     Args:
         data_config (dict): data config
         model (str): model name
+        model_group (str): model group name
         args (argparse.Namespace): arguments from the command line
-    
+
     Returns:
         Path: the test predictions path
     """
-    results_dir = construct_predictions_dir_path(data_config, args, model)
+    results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
     if args.multi_model:
-        output_fpath = str(results_dir) + f"/mbr_{args.type}_{args.model_group}_"
+        output_fpath = str(results_dir) + f"/mbr_{args.type}_{model_group}_"
     else:
         output_fpath = str(results_dir) + f"/mbr_{args.type}_"
     output_fpath += f"test.json"
     output_fpath = Path(output_fpath)
     return output_fpath
-
 
 
 def load_hf_model(model_name: str, args: argparse.Namespace):
@@ -315,8 +307,13 @@ def embed_individual_generations(individual_generations: np.ndarray, model_name:
 
 
 def generate_per_sample_single_prompt(
-    data_config: Dict, args: argparse.Namespace, model_name: str, 
-    model, tokenizer, prompt, gen_params
+    data_config: Dict,
+    args: argparse.Namespace,
+    model_name: str,
+    model,
+    tokenizer,
+    prompt,
+    gen_params,
 ):
     """
     Returns a generation for a single sample with a single prompt. If args.n_generations > 1, returns a list.
@@ -374,34 +371,27 @@ def generate_per_sample_multi_prompt(
     return sequence_texts
 
 
-def load_predictions(predictions_dir, split, args, for_selection=True):
+def load_predictions(data_config, split, model_group, args, for_selection=True):
     """
     Load predictions from a given split.
 
     Args:
-    - predictions_dir (Path): The directory containing the predictions.
-    - split (str): The split to load predictions for.
-    - args: arguments from the command line 
-    - for_selection: if set to false and args.n_generations > 1, loads predictions file that contains multiple generations per sample per prompt/model.
-    
+        data_config (Dict): data config
+        split (str): The split to load predictions for.
+        model_group (str): The model group to load predictions for.
+        args: arguments from the command line
+        for_selection: if set to false and args.n_generations > 1, loads predictions file that contains multiple generations per sample per prompt/model.
+
     Returns:
-    - list: The predictions for the split.
+        list: The predictions for the split.
     """
-    models = [args.model] if args.multi_prompt else MODEL_GROUPS[args.model_group]
+    models = [args.model] if args.multi_prompt else MODEL_GROUPS[model_group]
 
     predictions = []
     for model in models:
-
-        if args.multi_prompt:
-            file_name = "individual_"
-        else:
-            file_name = f"{model}_"
-
-        if args.n_generations > 1 and not for_selection:
-            file_name += f"{args.n_generations}_gens_"
-
-        fpath = predictions_dir / f"{file_name}{split}.json"
-        with open(fpath, "r") as f:
+        train_fpath, test_fpath = construct_generations_path(data_config, model, args)
+        path = test_fpath if split == "test" else train_fpath
+        with open(path, "r") as f:
             predictions.append(json.load(f)["generations"])
 
     predictions = np.array(predictions)

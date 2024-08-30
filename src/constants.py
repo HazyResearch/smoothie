@@ -10,7 +10,6 @@ HF_TEST_DATASETS = {
     "squad": ("hazyresearch/based-squad", None, "validation"),
     "trivia_qa": ("mandarjoshi/trivia_qa", "rc", "validation"),
     "definition_extraction": ("nguha/legalbench", "definition_extraction", "test"),
-
     # These datasets aren't reported in the paper
     "content_rephrasing": ("facebook/content_rephrasing", None, "test"),
     "alpaca_eval": ("tatsu-lab/alpaca_eval", "alpaca_eval_gpt4_baseline", "eval"),

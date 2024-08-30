@@ -21,9 +21,13 @@ from src.console import console
 from src.constants import *
 from src.data_utils import construct_processed_dataset_paths
 from src.model import Smoothie
-from src.utils import (check_args, construct_smoothie_predictions_path,
-                       embed_individual_generations, load_data_config,
-                       load_predictions)
+from src.utils import (
+    check_args,
+    construct_smoothie_predictions_path,
+    embed_individual_generations,
+    load_data_config,
+    load_predictions,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, help="LLM to use")

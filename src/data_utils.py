@@ -72,7 +72,6 @@ def load_hf_dataset(config: Dict, hf_cache_dir: str) -> pd.DataFrame:
         return train_df, test_df
 
     else:
-
         # Get train split
         hf_url, subset, split = HF_TRAIN_DATASETS[config["dataset"]]
         if subset is not None:

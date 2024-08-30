@@ -22,14 +22,14 @@ model="falcon-1b"
 for dataset_config in "${data_configs[@]}"; do
     echo "Processing dataset config: $dataset_config"
 
-    python -m src.make_dataset \
-        --dataset_config $dataset_config
+    #python -m src.make_dataset \
+    #    --dataset_config $dataset_config
 
-    python -m src.get_generations \
-        --dataset_config $dataset_config \
-        --model $model \
-        --results_dir $RESULTS_DIR \
-        --multi_prompt
+    #python -m src.get_generations \
+    #    --dataset_config $dataset_config \
+    #    --model $model \
+    #    --results_dir $RESULTS_DIR \
+    #    --multi_prompt
 
     # Pick random baseline
     python -m src.pick_random_baseline \
@@ -46,21 +46,21 @@ for dataset_config in "${data_configs[@]}"; do
         --multi_prompt --redo
 
     # Smoothie sample independent
-    python -m src.run_smoothie \
-        --dataset_config $dataset_config \
-        --model $model \
-        --results_dir $RESULTS_DIR \
-        --multi_prompt \
-        --type sample_independent --redo
+    #python -m src.run_smoothie \
+    #    --dataset_config $dataset_config \
+    #    --model $model \
+    #    --results_dir $RESULTS_DIR \
+    #    --multi_prompt \
+    #    --type sample_independent --redo
 
     # Smoothie sample dependent
-    python -m src.run_smoothie \
-        --dataset_config $dataset_config \
-        --model $model \
-        --results_dir $RESULTS_DIR \
-        --multi_prompt \
-        --type sample_dependent \
-        --k 20 --redo
+    #python -m src.run_smoothie \
+    #    --dataset_config $dataset_config \
+    #    --model $model \
+    #    --results_dir $RESULTS_DIR \
+    #    --multi_prompt \
+    #    --type sample_dependent \
+    #    --k 20 --redo
 
     # Evaluate
     python -m src.evaluate.evaluate \

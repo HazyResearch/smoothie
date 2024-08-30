@@ -45,7 +45,6 @@ parser.add_argument(
 
 
 def main(args):
-
     # Load outputs of individual models
     data_dir = Path("alpaca/downloaded_outputs")
     outputs = []

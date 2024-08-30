@@ -15,12 +15,17 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from src.console import console
-from src.utils import (check_args, construct_pick_random_predictions_path,
-                       load_data_config, load_predictions)
+from src.utils import (
+    check_args,
+    construct_pick_random_predictions_path,
+    load_data_config,
+    load_predictions,
+)
+from src.ensembles import MODEL_GROUPS
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--model", type=str, help="LLM to use")
+parser.add_argument("--model", default=None, type=str, help="LLM to use")
 parser.add_argument(
     "--dataset_config",
     type=str,
@@ -43,10 +48,6 @@ parser.add_argument(
     help="Redo the generation if the results file already exists",
 )
 parser.add_argument(
-    "--model_group",
-    help="The models to use for predictions",
-)
-parser.add_argument(
     "--multi_prompt",
     action="store_true",
 )
@@ -66,18 +67,30 @@ parser.add_argument(
     type=int,
 )
 
+def run_pick_random_baseline(args, data_config, model_group):
+    """
+    Run the pick-random baseline.
 
-def main(args):
-    check_args(args)
-    np.random.seed(args.seed)
-    data_config = load_data_config(args)
-    output_fpath = construct_pick_random_predictions_path(data_config, args.model, args)
-    predictions_dir = output_fpath.parent
+    Args:
+        args (argparse.Namespace): arguments from the command line
+        data_config (dict): data config
+        model_group (str): name of the model group
+    """
+    output_fpath = construct_pick_random_predictions_path(
+        data_config=data_config,
+        model_group=model_group,
+        args=args,
+    )
     if output_fpath.exists() and not args.redo:
         console.log(f"Results file already exists at {output_fpath}. Skipping.")
         return
 
-    test_generations = load_predictions(predictions_dir, "test", args)
+    test_generations = load_predictions(
+        data_config=data_config,
+        split="test",
+        model_group=model_group,
+        args=args,
+    )
 
     sequence_texts = []
     for _ in range(10):
@@ -94,8 +107,31 @@ def main(args):
     results = {
         "generations": sequence_texts,
     }
+    
+    # Create directory for output path if it doesn't exist
+    output_fpath.parent.mkdir(parents=True, exist_ok=True)
     output_fpath.write_text(json.dumps(results, indent=4))
     console.log(f"Results saved to {output_fpath}")
+
+
+def main(args):
+    check_args(args)
+    np.random.seed(args.seed)
+    data_config = load_data_config(args)
+    if args.multi_model:
+        for model_group in MODEL_GROUPS.keys():
+            run_pick_random_baseline(
+                args=args, 
+                data_config=data_config, 
+                model_group=model_group
+            )
+
+    else:
+        run_pick_random_baseline(
+            args=args, 
+            data_config=data_config, 
+            model_group=""
+        )
 
 
 if __name__ == "__main__":

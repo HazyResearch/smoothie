@@ -20,9 +20,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 from src.console import console
 from src.constants import *
 from src.data_utils import construct_processed_dataset_paths
-from src.utils import (check_args, construct_mbr_predictions_path,
-                       embed_individual_generations, load_data_config,
-                       load_predictions)
+from src.utils import (
+    check_args,
+    construct_mbr_predictions_path,
+    embed_individual_generations,
+    load_data_config,
+    load_predictions,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, help="LLM to use")
@@ -91,7 +95,6 @@ def main(args):
     model_name = "all-mpnet-base-v2"
     console.log(f"Loaded embedding model: {model_name}")
 
-
     smoothie_embeddings = embed_individual_generations(
         individual_generations=test_generations, model_name=model_name
     )
@@ -115,13 +118,12 @@ def main(args):
             embs_per_sample = smoothie_embeddings[sample_idx]
 
             sim = cosine_similarity(embs_per_sample)
-            sim_total += sim 
+            sim_total += sim
 
         sim_vec = sim_total.sum(axis=1)
-        max_idx = sim_vec.argmax() 
+        max_idx = sim_vec.argmax()
 
         dataset_texts = test_generations[:, max_idx].tolist()
-
 
     results = {
         "generations": dataset_texts,

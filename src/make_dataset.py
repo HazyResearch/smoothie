@@ -25,9 +25,13 @@ import pandas as pd
 import yaml
 
 from src.console import console
-from src.data_utils import (construct_processed_dataset_paths, generate_prompt,
-                            get_embedding_inputs, get_reference,
-                            load_hf_dataset)
+from src.data_utils import (
+    construct_processed_dataset_paths,
+    generate_prompt,
+    get_embedding_inputs,
+    get_reference,
+    load_hf_dataset,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

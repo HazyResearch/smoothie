@@ -20,8 +20,13 @@ from tqdm.auto import tqdm
 from src.console import console
 from src.data_utils import construct_processed_dataset_paths
 from src.evaluate.metrics import *
-from src.utils import (construct_labeled_knn_predictions_path, clean_generations,
-                       load_data_config, load_predictions, get_references)
+from src.utils import (
+    construct_labeled_knn_predictions_path,
+    clean_generations,
+    load_data_config,
+    load_predictions,
+    get_references,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
