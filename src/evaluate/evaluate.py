@@ -135,13 +135,16 @@ def evaluate_multi_model_task(args, data_config, model_group):
 
     for predictions_fpath in predictions_files:
         fname = predictions_fpath.stem
-        method = fname.replace("_test", "")
-        if "_train" in fname:
+        
+        if fname.endswith("_train"):
             # Ignore train files
             continue
 
         if "_gens_" in fname and "smoothie" not in fname:
             continue
+
+        # Method name is everything up to the last underscore
+        method = "_".join(fname.split("_")[:-1])
 
         # Extract references
         references = get_references(test_dataset)
@@ -211,13 +214,23 @@ def evaluate_multi_model_task(args, data_config, model_group):
         split="test",
     )
     for idx in range(generations.shape[1]):
-        score = evaluate_predictions(
-            generations=generations[:, idx],
-            references=references,
-            task_names=task_names,
-            metric_map={data_config["dataset"]: metric},
-        )
-        scores[metric]["ensemble"][MODEL_GROUPS[model_group][idx]] = score
+        if multitask:
+            score = evaluate_predictions(
+                generations=generations[:, idx],
+                references=references,
+                task_names=task_names,
+                metric_map=MULTI_MODEL_TASK2METRIC,
+            )
+            scores["ensemble"][MODEL_GROUPS[model_group][idx]] = score
+        else:
+            for metric in data_config["metrics"]:
+                score = evaluate_predictions(
+                    generations=generations[:, idx],
+                    references=references,
+                    task_names=task_names,
+                    metric_map={data_config["dataset"]: metric},
+                )
+                scores[metric]["ensemble"][MODEL_GROUPS[model_group][idx]] = score
     
 
     # Save scores
@@ -259,10 +272,12 @@ def evaluate_multi_prompt_task(args, data_config):
 
     for predictions_fpath in predictions_files:
         fname = predictions_fpath.stem
-        method = fname.replace("_test", "")
-        if "_train" in fname:
+        if fname.endswith("_train"):
             # Ignore train files
             continue
+        
+        # Method name is everything up to the last underscore
+        method = "_".join(fname.split("_")[:-1])
 
         if "_gens_" in fname and "smoothie" not in fname:
             continue

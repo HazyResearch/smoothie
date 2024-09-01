@@ -7,6 +7,7 @@ import numpy as np
 import transformers
 import yaml
 from fastembed import TextEmbedding
+from sentence_transformers import SentenceTransformer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.constants import HF_MODEL_MAX_LENGTHS, HF_MODELS
@@ -113,13 +114,19 @@ def construct_smoothie_predictions_path(
     """
     results_dir = construct_method_predictions_dir_path(data_config, args, model_group)
     if args.multi_model:
-        output_fpath = str(results_dir) + f"/smoothie_{args.type}_{model_group}_"
+        output_fpath = str(results_dir) + f"/smoothie_{args.type}_"
     else:
         output_fpath = str(results_dir) + f"/smoothie_{args.type}_"
+    if args.regime == "train_time":
+        output_fpath += f"train_time_"
+    else:
+        output_fpath += f"test_time_"
     if args.type == "sample_dependent" and args.n_generations == 1:
         output_fpath += f"{args.k}_"
     elif args.n_generations > 1:
         output_fpath += f"{args.n_generations}_gens_"
+
+    output_fpath += f"{args.embedding_model}_"
     if args.use_full_text_embeddings:
         output_fpath += f"full_embeddings_"
     if args.test:
@@ -261,49 +268,25 @@ def clean_generation(generation: str):
     return generation.strip().split("\n")[0]
 
 
-def clean_generations(generations: list):
-    """
-    Cleans generations from the model output.
-    """
-    return [clean_generation(generation) for generation in generations]
 
+def clean_generations(generations: Union[List[str], List[List[str]]]) -> Union[List[str], List[List[str]]]:
+    """
+    Applies clean_generation to each element in a 1D or 2D list of generations.
 
-def compute_embedding(embedding_model_name: str, text_inputs: np.ndarray):
+    Args:
+        generations (Union[List[str], List[List[str]]]): A 1D or 2D list of generations.
+
+    Returns:
+        Union[List[str], List[List[str]]]: A list with the same structure as the input, but with each generation cleaned.
     """
-    Embeds sample inputs according to some embedding model.
-    """
-    if embedding_model_name in ["all-mpnet-base-v2"]:
-        embedding_model = TextEmbedding(
-            model_name="BAAI/bge-small-en-v1.5", providers=["CUDAExecutionProvider"]
-        )
-        embeddings_list = list(embedding_model.embed(text_inputs))
-        return np.array(embeddings_list)
+    if isinstance(generations[0], list) or isinstance(generations[0], np.ndarray):
+        # 2D list
+        return [[clean_generation(gen) for gen in sample] for sample in generations]
     else:
-        raise ValueError("Invalid model name")
+        # 1D list
+        return [clean_generation(gen) for gen in generations]
 
 
-def embed_individual_generations(individual_generations: np.ndarray, model_name: str):
-    """
-    This function returns embeddings of a matrix of individual generations. It applies a dataset
-    specific preprocessing step.
-    """
-    n_samples, n_prompts = individual_generations.shape
-
-    # Post process the individual generations
-    processed_generations = []
-    for sample_idx in range(n_samples):
-        processed_generations.append([])
-        for prompt_idx in range(n_prompts):
-            generation = individual_generations[sample_idx, prompt_idx]
-            cleaned_generation = clean_generation(generation)
-            processed_generations[-1].append(cleaned_generation)
-    processed_generations = np.array(processed_generations)
-
-    # Construct the embeddings
-    flattened_generations = processed_generations.flatten()
-    embeddings = compute_embedding(model_name, flattened_generations)
-    embeddings = embeddings.reshape(n_samples, n_prompts, -1)
-    return embeddings
 
 
 def generate_per_sample_single_prompt(
@@ -414,3 +397,50 @@ def get_references(dataset: List[Dict]) -> Union[str, List[str]]:
         Union[str, List[str]]: The references.
     """
     return [sample["reference"] for sample in dataset]
+
+
+class Embedder:
+    """
+    """
+    def __init__(self, model_name: str):
+
+        if model_name in ["all-mpnet-base-v2"]:
+            self.model = SentenceTransformer(model_name)
+        elif model_name in ["bge-small-en-v1.5"]:
+            self.model = TextEmbedding(
+                model_name="BAAI/bge-small-en-v1.5", providers=["CUDAExecutionProvider"]
+            )
+        else:
+            raise ValueError("Invalid model name")
+        self.model_name = model_name
+
+
+    def _embed(self, text_inputs: List[str]) -> np.ndarray:
+        """
+        Embeds the input text.
+        """
+
+        if self.model_name in ["all-mpnet-base-v2"]:
+            return self.model.encode(text_inputs)
+        elif self.model_name in ["bge-small-en-v1.5"]:
+            return np.array(list(self.model.embed(text_inputs))) # original returns generatorj
+
+
+    def embed_individual_generations(self, individual_generations: np.ndarray) -> np.ndarray:
+        """
+        Embeds the input text.
+        """
+
+        n_samples, n_prompts = individual_generations.shape
+        cleaned_generations = np.array(clean_generations(individual_generations))
+        embeddings = self._embed(cleaned_generations.flatten())
+        embeddings = embeddings.reshape(n_samples, n_prompts, -1)
+        return embeddings
+    
+    
+    def embed_dataset(self, dataset: List[str]) -> np.ndarray:
+        """
+        Embeds the input text.
+        """
+        inputs = [sample["embedding_input"] for sample in dataset]
+        return self._embed(inputs)

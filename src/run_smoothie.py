@@ -14,7 +14,6 @@ import json
 import jsonlines
 import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 from sklearn.neighbors import NearestNeighbors
 
 from src.console import console
@@ -24,10 +23,14 @@ from src.model import Smoothie
 from src.utils import (
     check_args,
     construct_smoothie_predictions_path,
-    embed_individual_generations,
     load_data_config,
     load_predictions,
+    Embedder
 )
+
+from typing import Dict
+from src.ensembles import MODEL_GROUPS
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, help="LLM to use")
@@ -71,10 +74,6 @@ parser.add_argument(
     help="If not equal to 1, we replace k-nearest neighbors smoothing with computation over the n_generations per sample",
 )
 parser.add_argument(
-    "--model_group",
-    help="The models to use for predictions if we are doing multi-model",
-)
-parser.add_argument(
     "--multi_prompt",
     action="store_true",
 )
@@ -82,13 +81,138 @@ parser.add_argument(
     "--multi_model",
     action="store_true",
 )
+parser.add_argument(
+    "--regime",
+    choices=["train_time", "test_time"],
+    required=True,
+    help="Whether to run Smoothie in train or test time regime.",
+)
+parser.add_argument(
+    "--embedding_model",
+    type=str,
+    choices=["all-mpnet-base-v2", "bge-small-en-v1.5"],
+    help="Model to use for embedding generations."
+)
 
 
-def main(args):
-    check_args(args)
-    data_config = load_data_config(args)
-    output_fpath = construct_smoothie_predictions_path(data_config, args.model, args)
-    predictions_dir = output_fpath.parent
+def train_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group: str, embedder: Embedder):
+    """
+    Runs version of Smoothie where we have access to generations from multiple models at train time.
+
+    Args:
+        args (argparse.Namespace): arguments from the command line
+        model_group (str): name of the model group
+        embedder (Embedder): embedder to use
+    """
+    
+    output_fpath = construct_smoothie_predictions_path(
+        data_config=data_config,
+        model=args.model,
+        model_group=model_group,
+        args=args
+    )
+    if output_fpath.exists() and not args.redo:
+        console.log(f"Results file already exists at {output_fpath}. Skipping.")
+        return
+
+    # Load data and get embeddings for train and test x
+    console.log(f"Loaded embedding model: {embedder.model_name}")
+
+    train_dataset_path, test_dataset_path = construct_processed_dataset_paths(args)
+    with jsonlines.open(train_dataset_path) as file:
+        train_dataset = list(file.iter())
+    train_input_embeddings = embedder.embed_dataset(train_dataset)
+
+    with jsonlines.open(test_dataset_path) as file:
+        test_dataset = list(file.iter())
+    test_input_embeddings = embedder.embed_dataset(test_dataset)
+
+
+    # Compute embeddings for train generations
+    train_generations_for_smoothie = load_predictions(
+        data_config=data_config,
+        split="train",
+        model_group=model_group,
+        args=args,
+        for_selection=False
+    )
+    smoothie_embeddings = embedder.embed_individual_generations(
+        individual_generations=train_generations_for_smoothie
+    )
+
+    n_samples = len(test_dataset)
+    n_voters = smoothie_embeddings.shape[1]
+    embed_dim = smoothie_embeddings.shape[2]
+
+    if args.type == "sample_dependent":
+        # use KNN
+        nbrs = NearestNeighbors(n_neighbors=args.k, algorithm="auto")
+        nbrs.fit(
+            train_input_embeddings
+        )  # not the same as smoothie_embeddings! only kernel-smooth based on x similarity
+
+        _, test_indices = nbrs.kneighbors(test_input_embeddings)
+
+        smoothie_dataset_weights = []
+        for sample_idx in range(n_samples):
+            if args.k == 1:
+                embs_per_sample = smoothie_embeddings[sample_idx].reshape(
+                    (1, n_voters, -1)
+                )
+            else:
+                embs_per_sample = smoothie_embeddings[test_indices[sample_idx]]
+            smoothie = Smoothie(n_voters=n_voters, dim=embed_dim)
+            smoothie.fit(embs_per_sample)
+            smoothie_dataset_weights.append(smoothie.theta)
+        smoothie_dataset_weights = np.array(smoothie_dataset_weights)
+    else:
+        # learn a single set of weights for all samples
+        smoothie = Smoothie(n_voters=n_voters, dim=embed_dim)
+        smoothie.fit(smoothie_embeddings)
+        smoothie_dataset_weights = np.tile(smoothie.theta, (n_samples, 1))
+
+
+    # Select test generations based on smoothie weights
+    test_generations_for_selection = load_predictions(
+        data_config=data_config,
+        split="test",
+        model_group=model_group,
+        args=args,
+    )
+    dataset_texts = []
+    for sample_idx in range(n_samples):
+        max_idx = smoothie_dataset_weights[sample_idx].argmax()
+        text = test_generations_for_selection[sample_idx][max_idx]
+        dataset_texts.append(text)
+
+        if args.test and sample_idx == 1:
+            break
+
+    results = {
+        "generations": dataset_texts,
+        "smoothie_weights": smoothie_dataset_weights.tolist(),
+    }
+    console.log(f"Saving results to {output_fpath}")
+    output_fpath.write_text(json.dumps(results, default=int, indent=4))
+
+
+
+def test_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group: str, embedder: Embedder):
+    """
+    Runs version of Smoothie where we have access to generations from multiple models at test time.
+
+    Args:
+        args (argparse.Namespace): arguments from the command line
+        model_group (str): name of the model group
+        embedder (Embedder): embedder to use
+    """
+
+    output_fpath = construct_smoothie_predictions_path(
+        data_config=data_config,
+        model=args.model,
+        model_group=model_group,
+        args=args
+    )
     if output_fpath.exists() and not args.redo:
         console.log(f"Results file already exists at {output_fpath}. Skipping.")
         return
@@ -96,18 +220,21 @@ def main(args):
     _, test_dataset_path = construct_processed_dataset_paths(args)
     with jsonlines.open(test_dataset_path) as file:
         test_dataset = list(file.iter())
-    test_inputs = [sample["embedding_input"] for sample in test_dataset]
+    test_input_embeddings = embedder.embed_dataset(test_dataset)
 
     test_generations_for_smoothie = load_predictions(
-        predictions_dir, "test", args, for_selection=False
+        data_config=data_config,
+        split="test",
+        model_group=model_group,
+        args=args,
+        for_selection=False
     )
-    test_generations_for_selection = load_predictions(predictions_dir, "test", args)
-
-    model_name = "all-mpnet-base-v2"
-    model = SentenceTransformer(model_name)
-    console.log(f"Loaded embedding model: {model_name}")
-
-    test_input_embeddings = model.encode(test_inputs)
+    test_generations_for_selection = load_predictions(
+        data_config=data_config,
+        split="test",
+        model_group=model_group,
+        args=args,
+    )
 
     if args.use_full_text_embeddings:
         # use full text embeddings as input to Smoothie.
@@ -124,8 +251,8 @@ def main(args):
     else:
         smoothie_text = test_generations_for_smoothie
 
-    smoothie_embeddings = embed_individual_generations(
-        individual_generations=smoothie_text, model_name=model_name
+    smoothie_embeddings = embedder.embed_individual_generations(
+        individual_generations=smoothie_text
     )
 
     n_samples = int(len(smoothie_embeddings) / args.n_generations)
@@ -188,6 +315,24 @@ def main(args):
     }
     console.log(f"Saving results to {output_fpath}")
     output_fpath.write_text(json.dumps(results, default=int, indent=4))
+
+
+def main(args):
+    # Load args and data config
+    check_args(args)
+    data_config = load_data_config(args)
+    embedder = Embedder(model_name=args.embedding_model)
+    if args.multi_model:
+        for model_group in MODEL_GROUPS.keys():
+            if args.regime == "train_time":
+                train_time_smoothie(args=args, data_config=data_config, model_group=model_group, embedder=embedder)
+            else:
+                test_time_smoothie(args=args, data_config=data_config, model_group=model_group, embedder=embedder)
+    else:
+        if args.regime == "train_time":
+            train_time_smoothie(args=args, data_config=data_config, model_group="", embedder=embedder)
+        else:
+            test_time_smoothie(args=args, data_config=data_config, model_group="", embedder=embedder)
 
 
 if __name__ == "__main__":
