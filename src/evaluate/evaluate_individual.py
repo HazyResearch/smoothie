@@ -1,9 +1,5 @@
 """
-This script does evaluation for multi model tasks.
-
-For each method, it saves a file called {method}_{metric}.json, where {method} is the method name and {metric} is the metric name. 
-
-Example command: python -m src.score_summarization --model falcon-1b --config_path configs/cnn_dailymail_0_shot.yaml --n_samples 4
+This script evaluates individual methods. It saves scores on a per-sample basis.
 """
 
 import argparse
@@ -60,13 +56,13 @@ parser.add_argument(
 
 
 
-def evaluate_predictions(
+def evaluate_predictions_individual(
     dataset: str,
     generations: List[str],
     references: Union[str, List[str]],
     task_names: List[str],
     metric_map: Dict,
-) -> float:
+) -> List[float]:
     """
     Evaluate predictions using the specified metric.
 
@@ -84,10 +80,9 @@ def evaluate_predictions(
     task_names = np.array(task_names)
     generations = np.array(generations)
     references = np.array(references, dtype=object)
-
     # Add to scores based on task
     tasks = np.unique(task_names)
-    scores = []
+    scores = np.zeros(len(generations))
     for task_name in tasks:
         metric_func = METRIC_FUNCS[metric_map[task_name]]
         task_idxs = np.where(task_names == task_name)[0]
@@ -99,12 +94,10 @@ def evaluate_predictions(
             cleaned_generations = task_generations
 
         task_references = references[task_idxs]
-        scores.extend(
-            metric_func(generations=cleaned_generations, references=task_references)
-        )
+        scores[task_idxs] = metric_func(generations=cleaned_generations, references=task_references)
 
     assert len(scores) == len(generations)
-    return np.mean(scores)
+    return scores.tolist()
 
 
 def evaluate_multi_model_task(args, data_config, model_group_name, models):
@@ -142,6 +135,8 @@ def evaluate_multi_model_task(args, data_config, model_group_name, models):
 
     for predictions_fpath in predictions_files:
         fname = predictions_fpath.stem
+        if fname.startswith("labeled_oracle") or fname.startswith("pick_random") or fname.startswith("labeled_knn"):
+            continue
         
         if fname.endswith("_train"):
             # Ignore train files
@@ -157,69 +152,37 @@ def evaluate_multi_model_task(args, data_config, model_group_name, models):
         references = get_references(test_dataset)
         predictions_dict = json.loads(predictions_fpath.read_text())
 
-        if fname.startswith("labeled_oracle") or fname.startswith("pick_random") or fname.startswith("labeled_knn"):
-            # Predictions from labeled oracle and pick_random baseline take the shape (n_trials, n_samples). We report the average.
-            trial_generations = predictions_dict["generations"]
-            if multitask:
-                trial_scores = []
-                for generations in trial_generations:
-                    trial_scores.append(
-                        evaluate_predictions(
-                            dataset=data_config["dataset"],
-                            generations=generations,
-                            references=references,
-                            task_names=task_names,
-                            metric_map=MULTI_MODEL_TASK2METRIC,
-                        )
-                    )
-                mean_score = np.mean(trial_scores)
-                scores[method] = mean_score
+  
+        generations = predictions_dict["generations"]
+        if multitask:
+            sample_scores = evaluate_predictions_individual(
+                dataset=data_config["dataset"],
+                generations=generations,
+                references=references,
+                task_names=task_names,
+                metric_map=MULTI_MODEL_TASK2METRIC,
+            )
+            if fname.startswith("smoothie"):
+                scores["smoothie"][method] = sample_scores
+            elif fname.startswith("pair_rm"):
+                scores[method] = sample_scores
             else:
-                for metric in data_config["metrics"]:
-                    trial_scores = []
-                    for generations in trial_generations:
-                        trial_scores.append(
-                            evaluate_predictions(
-                                dataset=data_config["dataset"],
-                                generations=generations,
-                                references=references,
-                                task_names=task_names,
-                                metric_map={data_config["dataset"]: metric},
-                            )
-                        )
-                    mean_score = np.mean(trial_scores)
-                    scores[metric][method] = mean_score
+                scores["ensemble"][method] = sample_scores
         else:
-            generations = predictions_dict["generations"]
-            if multitask:
-                score = evaluate_predictions(
+            for metric in data_config["metrics"]:
+                sample_scores = evaluate_predictions_individual(
                     dataset=data_config["dataset"],
                     generations=generations,
                     references=references,
                     task_names=task_names,
-                    metric_map=MULTI_MODEL_TASK2METRIC,
+                    metric_map={data_config["dataset"]: metric},
                 )
                 if fname.startswith("smoothie"):
-                    scores["smoothie"][method] = score
+                    scores[metric]["smoothie"][method] = sample_scores
                 elif fname.startswith("pair_rm"):
-                    scores[method] = score
+                    scores[metric][method] = sample_scores
                 else:
-                    scores["ensemble"][method] = score
-            else:
-                for metric in data_config["metrics"]:
-                    score = evaluate_predictions(
-                        dataset=data_config["dataset"],
-                        generations=generations,
-                        references=references,
-                        task_names=task_names,
-                        metric_map={data_config["dataset"]: metric},
-                    )
-                    if fname.startswith("smoothie"):
-                        scores[metric]["smoothie"][method] = score
-                    elif fname.startswith("pair_rm"):
-                        scores[metric][method] = score
-                    else:
-                        scores[metric]["ensemble"][method] = score
+                    scores[metric]["ensemble"][method] = sample_scores
 
     # Compute scores for each model in the model group
     generations = load_predictions(
@@ -230,28 +193,28 @@ def evaluate_multi_model_task(args, data_config, model_group_name, models):
     )
     for idx in range(generations.shape[1]):
         if multitask:
-            score = evaluate_predictions(
+            sample_scores = evaluate_predictions_individual(
                 dataset=data_config["dataset"],
                 generations=generations[:, idx],
                 references=references,
                 task_names=task_names,
                 metric_map=MULTI_MODEL_TASK2METRIC,
             )
-            scores["ensemble"][models[idx]] = score
+            scores["ensemble"][models[idx]] = sample_scores
         else:
             for metric in data_config["metrics"]:
-                score = evaluate_predictions(
+                sample_scores = evaluate_predictions_individual(
                     dataset=data_config["dataset"],
                     generations=generations[:, idx],
                     references=references,
                     task_names=task_names,
                     metric_map={data_config["dataset"]: metric},
                 )
-                scores[metric]["ensemble"][models[idx]] = score
+                scores[metric]["ensemble"][models[idx]] = sample_scores
     
 
     # Save scores
-    scores_path = predictions_dir / "scores.json"
+    scores_path = predictions_dir / "sample_scores.json"
     console.log(f"Saving scores to {scores_path}")
     scores_path.write_text(json.dumps(scores, indent=4))
 
@@ -268,7 +231,7 @@ def evaluate_multi_prompt_task(args, data_config):
     predictions_dir = construct_method_predictions_dir_path(
         data_config=data_config, 
         args=args, 
-        model_group_name=""
+        model_group=""
     )
     
     _, test_data_path = construct_processed_dataset_paths(args)
@@ -295,7 +258,7 @@ def evaluate_multi_prompt_task(args, data_config):
         
         # Method name is everything up to the last underscore
         method = "_".join(fname.split("_")[:-1])
-        console.log(fname, method)
+
         if "_gens_" in fname and "smoothie" not in fname:
             continue
 
@@ -311,7 +274,6 @@ def evaluate_multi_prompt_task(args, data_config):
                 for generations in trial_generations:
                     trial_scores.append(
                         evaluate_predictions(
-                            dataset=data_config["dataset"],
                             generations=generations,
                             references=references,
                             task_names=task_names,
@@ -326,7 +288,6 @@ def evaluate_multi_prompt_task(args, data_config):
                     for generations in trial_generations:
                         trial_scores.append(
                             evaluate_predictions(
-                                dataset=data_config["dataset"],
                                 generations=generations,
                                 references=references,
                                 task_names=task_names,
@@ -340,7 +301,6 @@ def evaluate_multi_prompt_task(args, data_config):
             for metric in data_config["metrics"]:
                 for prompt_idx in range(generations.shape[1]):
                     prompt_scores =  evaluate_predictions(
-                        dataset=data_config["dataset"],
                         generations=generations[:, prompt_idx],
                         references=references,
                         task_names=task_names,
@@ -353,7 +313,6 @@ def evaluate_multi_prompt_task(args, data_config):
             generations = predictions_dict["generations"]
             if multitask:
                 score = evaluate_predictions(
-                    dataset=data_config["dataset"],
                     generations=generations,
                     references=references,
                     task_names=task_names,
@@ -366,7 +325,6 @@ def evaluate_multi_prompt_task(args, data_config):
             else:
                 for metric in data_config["metrics"]:
                     score = evaluate_predictions(
-                        dataset=data_config["dataset"],
                         generations=generations,
                         references=references,
                         task_names=task_names,

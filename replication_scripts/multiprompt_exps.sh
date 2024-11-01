@@ -8,16 +8,17 @@ RESULTS_DIR="smoothie_data/multi_prompt_results"
 # Dataset configs to run
 data_configs=(
     "dataset_configs/squad.yaml"
-    #"dataset_configs/trivia_qa.yaml"
-    #"dataset_configs/definition_extraction.yaml"
-    #"dataset_configs/cnn_dailymail.yaml"
-    #"dataset_configs/e2e_nlg.yaml"
-    #"dataset_configs/xsum.yaml"
-    #"dataset_configs/web_nlg.yaml"
+    "dataset_configs/trivia_qa.yaml"
+    "dataset_configs/definition_extraction.yaml"
+    "dataset_configs/cnn_dailymail.yaml"
+    "dataset_configs/e2e_nlg.yaml"
+    "dataset_configs/xsum.yaml"
+    "dataset_configs/web_nlg.yaml"
 )
 
 # Model
-model="falcon-1b"
+#model="falcon-1b"
+model="llama-2-7b"
 
 for dataset_config in "${data_configs[@]}"; do
     echo "Processing dataset config: $dataset_config"
@@ -36,14 +37,14 @@ for dataset_config in "${data_configs[@]}"; do
         --dataset_config $dataset_config \
         --model $model \
         --results_dir $RESULTS_DIR \
-        --multi_prompt --redo
+        --multi_prompt 
 
     # Labeled oracle
     python -m src.labeled_oracle \
         --dataset_config $dataset_config \
         --model $model \
         --results_dir $RESULTS_DIR \
-        --multi_prompt --redo
+        --multi_prompt
 
     # Smoothie sample independent
     #python -m src.run_smoothie \
@@ -61,6 +62,25 @@ for dataset_config in "${data_configs[@]}"; do
     #    --multi_prompt \
     #    --type sample_dependent \
     #    --k 20 --redo
+
+    python -m src.run_smoothie \
+        --dataset_config $dataset_config \
+        --model $model \
+        --results_dir $RESULTS_DIR \
+        --multi_prompt \
+        --type sample_dependent \
+        --regime test_time \
+        --embedding_model "all-mpnet-base-v2" \
+        --k 1
+
+    python -m src.run_smoothie \
+        --dataset_config $dataset_config \
+        --model $model \
+        --results_dir $RESULTS_DIR \
+        --multi_prompt \
+        --type sample_independent \
+        --regime test_time \
+        --embedding_model "all-mpnet-base-v2"
 
     # Evaluate
     python -m src.evaluate.evaluate \

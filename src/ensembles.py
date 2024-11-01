@@ -1,5 +1,39 @@
+# This file lists the ensemble combinations for different groups of tasks
+
+# Model groups for GSM8-k
+GSM_8K_GROUPS = {
+    "math_group": [
+        "gemma-7b",
+        "llema-7b",
+        "phi-2"
+    ]
+}
+
+# Model groups for MixInstruct
+MIX_INSTRUCT_GROUPS = {
+    "mi_all": [
+        "alpaca-native",
+        "chatglm-6b",
+        "dolly-v2-12b",
+        "flan-t5-xxl",
+        "koala-7B-HF",
+        "llama-7b-hf-baize-lora-bf16",
+        "moss-moon-003-sft",
+        "mpt-7b",
+        "oasst-sft-4-pythia-12b-epoch-3.5",
+        "stablelm-tuned-alpha-7b",
+        "vicuna-13b-1.1"
+    ]
+}
+
 # Model groups for multi-model experiments
 MODEL_GROUPS = {
+    "3b_ensemble": ["dolly-3b", "incite-3b", "pythia-2.8b", "gemma-2b"],
+    "7b_ensemble": ["llama-2-7b", "mistral-7b", "vicuna-7b", "gemma-7b", "nous-capybara"],
+}
+MODEL_GROUPS_OLD = {
+    "3b_ensemble": ["dolly-3b", "incite-3b", "pythia-2.8b", "gemma-2b"],
+    "7b_ensemble": ["llama-2-7b", "mistral-7b", "vicuna-7b", "gemma-7b", "nous-capybara"],
     "ensemble_1": ["llama-2-7b", "mistral-7b", "pythia-2.8b"],
     "ensemble_2": ["gemma-7b", "llama-2-7b", "nous-capybara"],
     "ensemble_3": ["llama-2-7b", "pythia-2.8b", "vicuna-7b"],

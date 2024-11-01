@@ -7,15 +7,7 @@ RESULTS_DIR="smoothie_data/multi_model_results"
 
 # Array of dataset configs
 dataset_configs=(
-    "dataset_configs/acc_group.yaml"
-    "dataset_configs/rouge2_group.yaml"
-    #"dataset_configs/squad.yaml"
-    #"dataset_configs/trivia_qa.yaml"
-    #"dataset_configs/definition_extraction.yaml"
-    #"dataset_configs/cnn_dailymail.yaml"
-    #"dataset_configs/e2e_nlg.yaml"
-    #"dataset_configs/xsum.yaml"
-    #"dataset_configs/web_nlg.yaml"
+    "dataset_configs/gsm8k.yaml"
 )
 
 
@@ -42,7 +34,7 @@ do
     python -m src.labeled_oracle \
         --dataset_config $dataset_config \
         --results_dir $RESULTS_DIR \
-        --multi_model 
+        --multi_model
     
     # PairRM
     python -m src.pair_rm_baseline \
@@ -50,10 +42,9 @@ do
         --results_dir $RESULTS_DIR \
         --multi_model
 
-    
     # Array of embedding models
-    #embedding_models=("bge-small-en-v1.5" "all-mpnet-base-v2")
-    embedding_models=("all-mpnet-base-v2")
+    embedding_models=("bge-small-en-v1.5" "all-mpnet-base-v2")
+
     for embedding_model in "${embedding_models[@]}"
     do
 
@@ -90,51 +81,6 @@ do
             --type sample_dependent \
             --regime test_time \
             --k 1 \
-            --embedding_model $embedding_model
-
-        python -m src.run_smoothie \
-            --dataset_config $dataset_config \
-            --results_dir $RESULTS_DIR \
-            --multi_model \
-            --type sample_dependent \
-            --regime test_time \
-            --k 5 \
-            --embedding_model $embedding_model
-        
-        python -m src.run_smoothie \
-            --dataset_config $dataset_config \
-            --results_dir $RESULTS_DIR \
-            --multi_model \
-            --type sample_dependent \
-            --regime test_time \
-            --k 10 \
-            --embedding_model $embedding_model
-
-        python -m src.run_smoothie \
-            --dataset_config $dataset_config \
-            --results_dir $RESULTS_DIR \
-            --multi_model \
-            --type sample_dependent \
-            --regime test_time \
-            --k 20 \
-            --embedding_model $embedding_model
-
-        python -m src.run_smoothie \
-            --dataset_config $dataset_config \
-            --results_dir $RESULTS_DIR \
-            --multi_model \
-            --type sample_dependent \
-            --regime test_time \
-            --k 50 \
-            --embedding_model $embedding_model
-
-        python -m src.run_smoothie \
-            --dataset_config $dataset_config \
-            --results_dir $RESULTS_DIR \
-            --multi_model \
-            --type sample_dependent \
-            --regime test_time \
-            --k 100 \
             --embedding_model $embedding_model
         
         # Smoothie sample dependent / train time with k = 20

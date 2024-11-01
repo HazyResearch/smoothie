@@ -53,7 +53,6 @@ def trivia_qa_acc(generations, references):
     return correct
 
 
-# TODO: UPDATE THIS TO INCORPORATE LIST OF REFERENCES
 def definition_extraction_acc(generations, references):
     correct = []
     for gen, ref in zip(generations, references):
@@ -64,12 +63,41 @@ def definition_extraction_acc(generations, references):
             correct.append(0)
     return correct
 
+def mix_instruct_rank(generations, references):
+    """
+    Computes rank of generation
+    """
+    ranks = []
+    for gen, ref in zip(generations, references):
+        ranks.append(ref[gen])
+    return ranks
+
+
+def gsm8k_acc(generations, references):
+    correct = []
+    for gen, ref in zip(generations, references):
+        gen_sentences = gen.split(".")
+        for sentence in gen_sentences:
+            if "the answer is" in sentence:
+                gen_lower = sentence.lower().replace(",", "")
+                ref_lower = ref.lower().replace(",", "")
+                if ref_lower in gen_lower:
+                    correct.append(1)
+                else:
+                    correct.append(0)
+                break
+        else:
+            correct.append(0)
+    return correct
+
 
 METRIC_FUNCS = {
     "rouge2": compute_rouge2_score,
     "squad_acc": squad_acc,
     "trivia_qa_acc": trivia_qa_acc,
     "definition_extraction_acc": definition_extraction_acc,
+    "mix_instruct_rank": mix_instruct_rank,
+    "gsm8k_acc": gsm8k_acc,
 }
 
 MULTI_MODEL_TASK2METRIC = {
@@ -80,4 +108,5 @@ MULTI_MODEL_TASK2METRIC = {
     "trivia_qa": "trivia_qa_acc",
     "web_nlg": "rouge2",
     "xsum": "rouge2",
+
 }

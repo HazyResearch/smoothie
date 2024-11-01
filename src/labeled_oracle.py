@@ -25,7 +25,7 @@ from src.utils import (
     load_predictions,
     get_references,
 )
-from src.ensembles import MODEL_GROUPS
+from src.ensembles import MODEL_GROUPS, MIX_INSTRUCT_GROUPS, GSM_8K_GROUPS
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, help="LLM to use")
@@ -90,20 +90,25 @@ TASK2METRIC = {
     "trivia_qa": "trivia_qa_acc",
     "web_nlg": "rouge2",
     "xsum": "rouge2",
+    "mix_instruct": "mix_instruct_rank",
+    "gsm8k": "gsm8k_acc"
 }
 
 
-def run_labeled_oracle(args, data_config, model_group):
+def run_labeled_oracle(args, data_config, model_group_name, model_group):
     """
     Run the labeled oracle baseline.
 
     Args:
         args (argparse.Namespace): arguments from the command line
         data_config (dict): data config
-        model_group (str): name of the model group
+        model_group_name (str): name of the model group
+        model_group (list): list of models
     """
     output_fpath = construct_labeled_oracle_predictions_path(
-        data_config=data_config, model_group=model_group, args=args
+        data_config=data_config,
+        model_group_name=model_group_name,
+        args=args,
     )
     predictions_dir = output_fpath.parent
 
@@ -114,13 +119,13 @@ def run_labeled_oracle(args, data_config, model_group):
     train_generations = load_predictions(
         data_config=data_config,
         split="train",
-        model_group=model_group,
+        models=model_group,
         args=args,
     )
     test_generations = load_predictions(
         data_config=data_config,
         split="test",
-        model_group=model_group,
+        models=model_group,
         args=args,
     )
 
@@ -148,6 +153,7 @@ def run_labeled_oracle(args, data_config, model_group):
             ]
             generator_scores.append(
                 evaluate_predictions(
+                    dataset=data_config["dataset"],
                     generations=sampled_generations,
                     references=sampled_train_references,
                     task_names=sampled_train_tasks,
@@ -172,18 +178,27 @@ def main(args):
     check_args(args)
     data_config = load_data_config(args)
     if args.multi_model:
-        for model_group in MODEL_GROUPS.keys():
+        if data_config["dataset"] == "mix_instruct":
+            model_groups = MIX_INSTRUCT_GROUPS
+        elif data_config["dataset"] == "gsm8k":
+            model_groups = GSM_8K_GROUPS
+        else:
+            model_groups = MODEL_GROUPS
+
+        for model_group in model_groups:
             run_labeled_oracle(
                 args=args, 
                 data_config=data_config, 
-                model_group=model_group
+                model_group_name=model_group,
+                model_group=model_groups[model_group]
             )
 
     else:
         run_labeled_oracle(
             args=args, 
             data_config=data_config, 
-            model_group=""
+            model_group_name="",
+            model_group=[args.model]
         )
     
 

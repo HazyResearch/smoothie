@@ -29,7 +29,7 @@ from src.utils import (
 )
 
 from typing import Dict
-from src.ensembles import MODEL_GROUPS
+from src.ensembles import MODEL_GROUPS, MIX_INSTRUCT_GROUPS, GSM_8K_GROUPS
 
 
 parser = argparse.ArgumentParser()
@@ -95,7 +95,7 @@ parser.add_argument(
 )
 
 
-def train_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group: str, embedder: Embedder):
+def train_time_smoothie(args, data_config, model_group_name, model_group, embedder: Embedder):
     """
     Runs version of Smoothie where we have access to generations from multiple models at train time.
 
@@ -108,7 +108,7 @@ def train_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group
     output_fpath = construct_smoothie_predictions_path(
         data_config=data_config,
         model=args.model,
-        model_group=model_group,
+        model_group_name=model_group_name,
         args=args
     )
     if output_fpath.exists() and not args.redo:
@@ -132,12 +132,14 @@ def train_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group
     train_generations_for_smoothie = load_predictions(
         data_config=data_config,
         split="train",
-        model_group=model_group,
+        models=model_group,
         args=args,
         for_selection=False
     )
+    clean = data_config["dataset"] not in ["mix_instruct", "alpaca", "gsm8k"]
     smoothie_embeddings = embedder.embed_individual_generations(
-        individual_generations=train_generations_for_smoothie
+        individual_generations=train_generations_for_smoothie,
+        clean=clean
     )
 
     n_samples = len(test_dataset)
@@ -176,7 +178,7 @@ def train_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group
     test_generations_for_selection = load_predictions(
         data_config=data_config,
         split="test",
-        model_group=model_group,
+        models=model_group,
         args=args,
     )
     dataset_texts = []
@@ -197,7 +199,7 @@ def train_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group
 
 
 
-def test_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group: str, embedder: Embedder):
+def test_time_smoothie(args, data_config, model_group_name, model_group, embedder: Embedder):
     """
     Runs version of Smoothie where we have access to generations from multiple models at test time.
 
@@ -210,7 +212,7 @@ def test_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group:
     output_fpath = construct_smoothie_predictions_path(
         data_config=data_config,
         model=args.model,
-        model_group=model_group,
+        model_group_name=model_group_name,
         args=args
     )
     if output_fpath.exists() and not args.redo:
@@ -225,14 +227,14 @@ def test_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group:
     test_generations_for_smoothie = load_predictions(
         data_config=data_config,
         split="test",
-        model_group=model_group,
+        models=model_group,
         args=args,
         for_selection=False
     )
     test_generations_for_selection = load_predictions(
         data_config=data_config,
         split="test",
-        model_group=model_group,
+        models=model_group,
         args=args,
     )
 
@@ -251,8 +253,10 @@ def test_time_smoothie(args: argparse.Namespace, data_config: Dict, model_group:
     else:
         smoothie_text = test_generations_for_smoothie
 
+    clean = data_config["dataset"] not in ["mix_instruct", "alpaca", "gsm8k"]
     smoothie_embeddings = embedder.embed_individual_generations(
-        individual_generations=smoothie_text
+        individual_generations=smoothie_text,
+        clean=clean,
     )
 
     n_samples = int(len(smoothie_embeddings) / args.n_generations)
@@ -323,16 +327,23 @@ def main(args):
     data_config = load_data_config(args)
     embedder = Embedder(model_name=args.embedding_model)
     if args.multi_model:
-        for model_group in MODEL_GROUPS.keys():
+        if data_config["dataset"] == "mix_instruct":
+            model_groups = MIX_INSTRUCT_GROUPS
+        elif data_config["dataset"] == "gsm8k":
+            model_groups = GSM_8K_GROUPS
+        else:
+            model_groups = MODEL_GROUPS
+
+        for model_group in model_groups:
             if args.regime == "train_time":
-                train_time_smoothie(args=args, data_config=data_config, model_group=model_group, embedder=embedder)
+                train_time_smoothie(args=args, data_config=data_config, model_group_name=model_group, model_group=model_groups[model_group], embedder=embedder)
             else:
-                test_time_smoothie(args=args, data_config=data_config, model_group=model_group, embedder=embedder)
+                test_time_smoothie(args=args, data_config=data_config, model_group_name=model_group, model_group=model_groups[model_group], embedder=embedder)
     else:
         if args.regime == "train_time":
-            train_time_smoothie(args=args, data_config=data_config, model_group="", embedder=embedder)
+            train_time_smoothie(args=args, data_config=data_config, model_group_name="", model_group=[args.model], embedder=embedder)
         else:
-            test_time_smoothie(args=args, data_config=data_config, model_group="", embedder=embedder)
+            test_time_smoothie(args=args, data_config=data_config, model_group_name="", model_group=[args.model], embedder=embedder)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,8 @@
+dataset: mix_instruct
+multi_prompt_template: "" # Not used for this dataset
+multi_model_prompt_template: "" # Not used for this dataset
+max_new_tokens: 20
+train_size: 100000
+test_size: 5000
+metrics:
+  - mix_instruct_rank
