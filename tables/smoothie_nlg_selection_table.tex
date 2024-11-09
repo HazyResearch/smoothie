@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{7pt}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+& & CNN & Def. Ext. & E2E & SQuAD & TriviaQA & WebNLG & XSum \\ \midrule
+\multirow{3}{*}{3B}
+& \small{\textsc{Random}} & 12.9 & 52.4 & 27.3 & 59.6 & \underline{32.7} & 23.4 & \underline{4.5} \\
+& \small{\nameglobal} & \underline{\textbf{14.3}} & \underline{\textbf{61.5}} & \underline{\textbf{31.8}} & \underline{60.7} & 32.1 & \underline{\textbf{30.7}} & \underline{4.5} \\
+& \small{\textsc{Best-on-Val}} & 13.0 & 60.5 & 31.1 & \textbf{66.4} & \textbf{38.7} & 30.3 & \textbf{5.3} \\
+\midrule
+\multirow{3}{*}{7B}
+& \small{\textsc{Random}} & 13.7 & 58.5 & 35.3 & 67.9 & 59.3 & 44.1 & 6.9 \\
+& \small{\nameglobal} & \underline{\textbf{14.5}} & \underline{\textbf{70.9}} & \underline{\textbf{36.9}} & \underline{\textbf{76.2}} & \underline{\textbf{68.3}} & \underline{45.9} & \underline{\textbf{8.4}} \\
+& \small{\textsc{Best-on-Val}} & \textbf{14.5} & 69.4 & 36.7 & 74.0 & 65.8 & \textbf{48.3} & 8.3 \\
+\bottomrule
+\end{tabular}
+\caption{Comparing \nameglobal to baseline methods on different ensembles across NLG datasets. Underlined values are the best performing \textit{unsupervised} methods. Bold values are the best performing \textit{overall} methods. We report rouge2 scores for CNN, XSum, WebNLG, and E2E, and accuracy for the rest. All metrics are scaled to 0-100.}
+\label{tab:smoothie-global-comparison}
+\end{table}

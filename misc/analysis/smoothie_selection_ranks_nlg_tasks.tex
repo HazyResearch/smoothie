@@ -1,0 +1,47 @@
+\begin{table}[ht]
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{l@{\hspace{1em}}cc@{\hspace{1em}}cc}
+\toprule
+& \multicolumn{2}{c}{\textbf{Avg Rank}} & \multicolumn{2}{c}{\textbf{R1 (\%)}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Dataset} & Train & Test & Train & Test \\
+\midrule
+SQuAD & 2.20 & 1.50 & 50.0 & 70.0 \\
+Trivia QA & 2.10 & 2.10 & 30.0 & 30.0 \\
+Def Ext. & 1.10 & 1.10 & 90.0 & 90.0 \\
+CNN & 1.90 & 1.70 & 30.0 & 40.0 \\
+XSum & 1.90 & 1.50 & 40.0 & 70.0 \\
+E2E & 2.10 & 1.50 & 30.0 & 70.0 \\
+Web NLG & 1.50 & 1.40 & 60.0 & 60.0 \\
+\bottomrule
+\end{tabular}
+\caption{Ranking performance of Smoothie variants. \textit{Avg Rank} shows mean ranking (1 is best), \textit{R1} shows percentage of rank-1 selections. A random selection strategy would achieve a rank of 3, and select the optimal model 20\% of the time.}
+\label{tab:smoothie-selection-rankings-nlg}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{l@{\hspace{1em}}cc@{\hspace{1em}}cc}
+\toprule
+& \multicolumn{2}{c}{\textbf{Smoothie}} & \multicolumn{2}{c}{\textbf{Reference}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Dataset} & Train & Test & Random & Oracle \\
+\midrule
+SQuAD & 68.3 & 73.2 & 63.0 & 74.3 \\
+Trivia QA & 55.7 & 55.7 & 44.6 & 64.8 \\
+Def Ext. & 67.0 & 66.8 & 55.8 & 67.1 \\
+CNN & 14.2 & 14.3 & 13.2 & 14.5 \\
+XSum & 6.5 & 7.1 & 5.6 & 7.6 \\
+E2E & 34.7 & 35.3 & 31.0 & 36.8 \\
+Web NLG & 46.9 & 46.6 & 33.7 & 47.7 \\
+\bottomrule
+\end{tabular}
+\caption{Score performance (\%) of Smoothie variants compared to random selection (\textit{Random}) and optimal model selection (\textit{Oracle}).}
+\label{tab:smoothie-selection-scores-nlg}
+\end{minipage}
+\end{table}

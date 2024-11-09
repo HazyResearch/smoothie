@@ -1,13 +1,16 @@
 # smoothie
 
+This repository contains replication code for the following paper:
+
+> Smoothie: Label Free Language Model Routing
+> Neel Guha*, Mayee Chen*, Trevor Chow, Ishan Khare, Christopher Ré
+> NeurIPS 2024
+
+It contains code for replicating all experiments in the paper. If you would like to use Smoothie in any pipeline, we recommend using version.
+
 This is the codebase for Smoothie. It allows you to both use Smoothie, and reproduce the experiments in the paper. 
 
-We store all datasets, predictions, and results from the paper in a HuggingFace dataset. You can download the dataset from HuggingFace by running the following command:
 
-```bash
-> huggingface-cli login --token $HUGGINGFACE_TOKEN --add-to-git-credential
-> git clone https://huggingface.co/datasets/hazyresearch/smoothie_data
-```
 
 where `$HUGGINGFACE_TOKEN` is your HuggingFace token.
 
@@ -21,16 +24,27 @@ Install the dependencies using the following commands:
 > pip install -r requirements.txt
 ```
 
-## Using Smoothie
+## Data and model generations
 
-In `tutorials/tutorial.ipynb`, we walk through how to use the Smoothie algorithm. The tutorial can be easily adapted for your use case given that you provide a .jsonl file with the dataset inputs, and several json files each containing a different model/prompt's generations.
+We store all datasets, predictions, and results from the paper in a [HuggingFace dataset repository](https://huggingface.co/datasets/hazyresearch/smoothie_data/). You can download the dataset from HuggingFace by running the following command:
 
-If interested in the mathematical derivation of Smoothie, check out `tutorials/algorithm.ipynb`.
-
+```bash
+> huggingface-cli login --token $HUGGINGFACE_TOKEN --add-to-git-credential
+> git clone https://huggingface.co/datasets/hazyresearch/smoothie_data
+```
 
 ## Reproducing the paper
 
-Using Smoothie can be broken down into four steps: 1) formatting a dataset (either single-task or multi-task) 2) getting multiple generations per sample in the dataset (whether via multiple prompts or multiple LLMs) 3) running a routing method to determine the best generation per sample, and 4) evaluating the selected generations.
+The repository contains the following folders:
+
+- `alpaca`: Contains the code and data for the AlpacaEval experiments.
+- `dataset_configs`: Contains the configuration files for all single-task and multi-task datasets.
+- `plots`: Contains plots for the paper.
+- `prompt_templates`: Contains the prompt templates for all single-task and multi-task datasets.
+- `replication_scripts`: Contains bash scripts for running all experiments in the paper.
+- `src`: Contains the source code for formatting datasets, getting generations, running routing methods, and evaluating results.
+- `tables`: Contains tables for the paper.
+- `tutorials`: Contains tutorials for using Smoothie.
 
 ### Formatting datasets
 
@@ -269,3 +283,8 @@ Then, create a new .yaml file in `dataset_configs` with the dataset name and the
 To add a new model, add it to `HF_MODELS` in `src/constants.py`. 
 
 
+## Using Smoothie
+
+In `tutorials/tutorial.ipynb`, we walk through how to use the Smoothie algorithm. The tutorial can be easily adapted for your use case given that you provide a .jsonl file with the dataset inputs, and several json files each containing a different model/prompt's generations.
+
+If interested in the mathematical derivation of Smoothie, check out `tutorials/algorithm.ipynb`.

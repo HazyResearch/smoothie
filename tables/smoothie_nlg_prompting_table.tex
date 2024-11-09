@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{7pt}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+& & \small{CNN} & \small{Def. Ext.} & \small{E2E} & \small{SQuAD} & \small{TriviaQA} & \small{WebNLG} & \small{XSum} \\ \midrule
+\multirow{3}{*}{\small{Falcon}}
+& \small{\random} & \small{7.1} & \small{60.3} & \small{27.8} & \small{47.3} & \small{22.0} & \small{\underline{29.2}} & \small{4.7} \\
+& \small{\nameglobal} & \small{\underline{7.9}} & \small{\underline{62.2}} & \small{\underline{\textbf{31.6}}} & \small{\underline{\textbf{53.3}}} & \small{\underline{\textbf{31.4}}} & \small{28.3} & \small{\underline{6.4}} \\
+& \small{\namelocal} & \small{8.0} & \small{\textbf{69.2}} & \small{31.5} & \small{\textbf{53.3}} & \small{27.4} & \small{30.8} & \small{6.0} \\
+& \small{\textsc{Best-on-Val}} & \small{\textbf{8.4}} & \small{64.2} & \small{31.0} & \small{52.7} & \small{\textbf{31.4}} & \small{\textbf{32.5}} & \small{\textbf{6.7}} \\
+\midrule
+\multirow{3}{*}{\small{Llama-2}}
+& \small{\random} & \small{\underline{7.3}} & \small{47.8} & \small{31.6} & \small{54.0} & \small{45.9} & \small{45.5} & \small{11.2} \\
+& \small{\nameglobal} & \small{6.9} & \small{\underline{\textbf{64.6}}} & \small{\underline{\textbf{37.6}}} & \small{\underline{61.4}} & \small{\underline{\textbf{68.7}}} & \small{\underline{48.5}} & \small{\underline{12.8}} \\
+& \small{\namelocal} & \small{9.5} & \small{59.3} & \small{33.6} & \small{63.1} & \small{61.3} & \small{48.0} & \small{12.7} \\
+& \small{\textsc{Best-on-Val}} & \small{\textbf{11.8}} & \small{\textbf{64.6}} & \small{35.0} & \small{\textbf{66.1}} & \small{\textbf{68.7}} & \small{\textbf{48.7}} & \small{\textbf{13.0}} \\
+\bottomrule
+\end{tabular}
+\caption{Comparing \nameglobal and \namelocal to baseline methods in the prompt-selection setting. Underlined values are the best performing \textit{unsupervised} methods. Bold values are the best performing \textit{overall} methods. We report rouge2 scores for CNN, XSum, WebNLG, and E2E, and accuracy for the rest. All metrics are scaled to 0-100.}
+\label{tab:smoothie-prompt-comparison}
+\end{table}

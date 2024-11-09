@@ -1,0 +1,12 @@
+\begin{table}[t]
+\centering
+\begin{tabular}{l|ccc|ccc}
+\toprule
+& \multicolumn{3}{c|}{Unlabeled Methods} & \multicolumn{3}{c}{Labeled Methods} \\
+Dataset & Random & Smoothie (Train) & Smoothie (Test) & Oracle & Best Ind. & Pair RM \\\midrule
+	extsc{Dist-Acc} & 56.0 & 64.4 & \underline{69.0}* & 67.3 & 68.3 & 62.5 \\
+\bottomrule
+\end{tabular}
+\caption{Performance comparison across different routing methods. All scores are percentages. Best unlabeled method per row is underlined. Best overall method per row is marked with *.}
+\label{tab:routing_results}
+\end{table}
