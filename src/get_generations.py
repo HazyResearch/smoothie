@@ -57,7 +57,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_group",
     default=None,
-    choices=["7b", "3b", None],
+    choices=MODEL_GROUPS.keys(),
     help="The models to use for predictions. If set to none, we are in the multi-prompt setting.",
 )
 parser.add_argument(

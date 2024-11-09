@@ -63,6 +63,7 @@ def definition_extraction_acc(generations, references):
             correct.append(0)
     return correct
 
+<<<<<<< HEAD
 def mix_instruct_rank(generations, references):
     """
     Computes rank of generation
@@ -73,6 +74,8 @@ def mix_instruct_rank(generations, references):
     return ranks
 
 
+=======
+>>>>>>> 9593a915ec68112b80e032e1112a33d5b75e87dd
 def gsm8k_acc(generations, references):
     correct = []
     for gen, ref in zip(generations, references):
@@ -96,7 +99,10 @@ METRIC_FUNCS = {
     "squad_acc": squad_acc,
     "trivia_qa_acc": trivia_qa_acc,
     "definition_extraction_acc": definition_extraction_acc,
+<<<<<<< HEAD
     "mix_instruct_rank": mix_instruct_rank,
+=======
+>>>>>>> 9593a915ec68112b80e032e1112a33d5b75e87dd
     "gsm8k_acc": gsm8k_acc,
 }
 

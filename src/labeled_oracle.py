@@ -92,6 +92,7 @@ TASK2METRIC = {
     "xsum": "rouge2",
     "mix_instruct": "mix_instruct_rank",
     "gsm8k": "gsm8k_acc"
+    "gsm8k": "gsm8k_acc",
 }
 
 

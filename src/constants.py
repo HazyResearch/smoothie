@@ -10,16 +10,8 @@ HF_TEST_DATASETS = {
     "squad": ("hazyresearch/based-squad", None, "validation"),
     "trivia_qa": ("mandarjoshi/trivia_qa", "rc", "validation"),
     "definition_extraction": ("nguha/legalbench", "definition_extraction", "test"),
-     "mix_instruct": ("llm-blender/mix-instruct", None, "test"),
+    "mix_instruct": ("llm-blender/mix-instruct", None, "test"),
     "gsm8k": ("gsm8k", "main", "test"),
-
-    # These datasets aren't reported in the paper
-    # TODO: Delete this
-    "content_rephrasing": ("facebook/content_rephrasing", None, "test"),
-    "alpaca_eval": ("tatsu-lab/alpaca_eval", "alpaca_eval_gpt4_baseline", "eval"),
-    "gigaword": ("gigaword", None, "test"),
-    "openai_humaneval": ("openai_humaneval", None, "test"),
-    "common_gen": ("allenai/common_gen", None, "validation"),
 }
 
 # This dictionary contains the name of each train dataset, the subset to use, and the split to use. This is only used for selecting in-context demonstrations for prompts.
@@ -35,6 +27,7 @@ HF_TRAIN_DATASETS = {
 }
 
 # HF URLS for each model
+# TODO: Remove unused models
 HF_MODELS = {
     "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.2",
     "falcon-1b": "tiiuae/falcon-rw-1b",
@@ -64,9 +57,12 @@ HF_MODELS = {
     "gemma-2b": "google/gemma-2b-it",
     "incite-3b": "togethercomputer/RedPajama-INCITE-Instruct-3B-v1",
     "nous-capybara": "NousResearch/Nous-Capybara-7B-V1.9",
+    "qwen-1.5b": "Qwen/Qwen2-1.5B-Instruct",
+    "flan-t5-large": "google/flan-t5-large"
 }
 
 # MODEL MAX LENGTHS
+# TODO: Remove unused models
 HF_MODEL_MAX_LENGTHS = {
     "pythia-1b": 2048,
     "pythia-2.8b": 2048,
@@ -93,4 +89,6 @@ HF_MODEL_MAX_LENGTHS = {
     "gemma-2b": 4096,
     "incite-3b": 4096,
     "nous-capybara": 4096,
+    "qwen-1.5b": 4096,
+    "flan-t5-large": 4096
 }

@@ -165,6 +165,8 @@ def get_embedding_inputs(config: Dict, row: Dict) -> str:
         embedding_input = row["text"]
     elif config["dataset"] == "e2e_nlg":
         embedding_input = row["meaning_representation"]
+    elif config["dataset"] == "gsm8k":
+        embedding_input = row["question"]
     else:
         raise NotImplementedError(
             f"Embedding inputs not implemented for {config['dataset']}"
@@ -208,6 +210,9 @@ def get_reference(config: Dict, row: Dict) -> Union[list, str]:
     elif config["dataset"] == "e2e_nlg":
         # Returns a string
         return row["human_reference"]
+    elif config["dataset"] == "gsm8k":
+        answer_text = row["answer"]
+        return answer_text.split("####")[1].strip()
     else:
         raise NotImplementedError(f"{config['dataset']} not implemented.")
 

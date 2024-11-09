@@ -135,6 +135,33 @@ def construct_smoothie_predictions_path(
     output_fpath = Path(output_fpath)
     return output_fpath
 
+def construct_smoothie_train_time_predictions_path(
+    data_config: Dict, model: str, args: argparse.Namespace
+) -> Path:
+    """
+    Construct the paths where train and test predictions will be saved for Smoothie (train-time variant).
+
+    Args:
+        data_config (dict): data config
+        model (str): model name
+        args (argparse.Namespace): arguments from the command line
+    
+    Returns:
+        Path: the test predictions path
+    """
+    results_dir = construct_predictions_dir_path(data_config, args, model)
+    if args.multi_model:
+        output_fpath = str(results_dir) + f"/smoothie_tt_{args.type}_{args.model_group}_"
+    else:
+        output_fpath = str(results_dir) + f"/smoothie_tt_{args.type}_"
+    if args.type == "sample_dependent" and args.n_generations == 1:
+        output_fpath += f"{args.k}_"
+    if args.test:
+        output_fpath += "test_"
+    output_fpath += f"test.json"
+    output_fpath = Path(output_fpath)
+    return output_fpath
+
 
 def construct_pick_random_predictions_path(
     data_config: Dict, model_group_name: str, args: argparse.Namespace
