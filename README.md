@@ -10,8 +10,8 @@ This repository contains replication code for the following paper:
 
 > Smoothie: Label Free Language Model Routing \
 > Neel Guha*, Mayee Chen*, Trevor Chow, Ishan Khare, Christopher Ré \
-> NeurIPS 2024
-> https://arxiv.org/abs/2412.04692
+> NeurIPS 2024 \
+> [paper](https://arxiv.org/abs/2412.04692) | [blog](https://hazyresearch.stanford.edu/blog/2024-12-10-smoothie)
 
 
 ## Dependencies
