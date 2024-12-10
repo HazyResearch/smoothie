@@ -1,0 +1,5 @@
+[
+    "Answer the question below. Be as brief as possible.\nQuestion: {question}\nAnswer:",
+    "{question}",
+    "You are an LLM who is supposed to be as factual as possible.\n#################\n{question}\nThe answer to the question above is"
+]

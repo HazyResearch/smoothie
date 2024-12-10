@@ -1,0 +1,8 @@
+dataset: cnn_dailymail
+multi_prompt_template: cnn_dailymail_multi_prompt
+multi_model_prompt_template: cnn_dailymail_multi_model
+max_new_tokens: 75
+train_size: 250
+test_size: 1000
+metrics:
+  - rouge2

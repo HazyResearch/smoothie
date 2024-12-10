@@ -1,0 +1,8 @@
+dataset: web_nlg
+multi_prompt_template: web_nlg_multi_prompt
+multi_model_prompt_template: web_nlg_multi_model
+max_new_tokens: 50
+train_size: 100
+test_size: 1000
+metrics:
+  - rouge2

@@ -1,0 +1,4 @@
+For the sentence below, identify the term that is being defined.
+
+Sentence: {text}
+Term:

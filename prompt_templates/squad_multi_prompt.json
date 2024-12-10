@@ -1,0 +1,5 @@
+[
+    "Answer the question given the context. Be as brief as possible.\n\nContext: While experimenting, Tesla inadvertently faulted a power station generator, causing a power outage. In August 1917, Tesla explained what had happened in The Electrical Experimenter: \"As an example of what has been done with several hundred kilowatts of high frequency energy liberated, it was found that the dynamos in a power house six miles away were repeatedly burned out, due to the powerful high frequency currents set up in them, and which caused heavy sparks to jump through the windings and destroy the insulation!\"\nQuestion: What did Tesla accidentally cause?\nAnswer: power outage\n\nContext: {context}\nQuestion: {question}\nAnswer:",
+    "Respond to the inquiry considering the surrounding circumstances. Make sure your answer is correct.\n\nContext: {context}\nQuestion: {question}\nAnswer:",
+    "You are an LLM who is supposed to be as factual as possible. Address the question in light of the given context.\n\nQuestion: {question}\nContext: {context}\nAnswer:"
+]

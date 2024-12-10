@@ -1,0 +1,8 @@
+dataset: definition_extraction
+multi_prompt_template: definition_extraction_multi_prompt
+multi_model_prompt_template: definition_extraction_multi_model
+max_new_tokens: 20
+train_size: 100
+test_size: 595
+metrics:
+  - definition_extraction_acc

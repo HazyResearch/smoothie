@@ -1,0 +1,5 @@
+[
+    "Following is a set of knowledge graph triples. Generate a coherent piece of text that contains all of the information in the triples. Only use information from the provided triples.\n\n### Triples\nAaron_S._Daggett | birthPlace | Greene,_Maine\n\n### Text\nAaron S. Daggett was born in Greene, Maine.\n\n### Triples\n{triples}\n\n### Text",
+    "Generate a coherent paragraph incorporating the information from the given set of knowledge graph triples.\n\n### Triples\nAmerican_Civil_War | commander | Robert_E._Lee\nAaron_S._Daggett | battle | American_Civil_War\n\n### Text\nAaron S. Daggett fought in battles in the American Civil War, a war Robert E Lee was part of, as a commander.\n\n### Triples\n{triples}\n\n### Text",
+    "Formulate a cohesive passage using the details provided in the set of knowledge graph triples.\n\n### Triples\nAbilene,_Texas | isPartOf | Texas\nTexas | capital | Austin,_Texas\nAbilene,_Texas | country | United_States\n\n### Text\nAbilene, Texas (capital: Austin) is located within the United States.\n\n### Triples\n{triples}\n\n### Text"
+]

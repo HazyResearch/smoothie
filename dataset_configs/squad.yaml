@@ -1,0 +1,8 @@
+dataset: squad
+multi_prompt_template: squad_multi_prompt
+multi_model_prompt_template: squad_multi_model
+max_new_tokens: 20
+train_size: 250
+test_size: 1000
+metrics:
+  - squad_acc

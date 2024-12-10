@@ -1,0 +1,7 @@
+Transform the meaning representation into a sentence.
+
+Meaning representation: name[Alimentum], food[Chinese], priceRange[less than £20], area[riverside], familyFriendly[yes]
+Natural language: Alimentum is a family-friendly Chinese food restaurant in the Riverside area where you can eat for low prices.
+
+Meaning representation: {meaning_representation}
+Natural language:

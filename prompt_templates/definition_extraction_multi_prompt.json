@@ -1,0 +1,5 @@
+[
+    "For the sentence below, identify the term that is being defined.\n\nSentence: {text}\nTerm:",
+    "{text}\n\nQuestion: What are the term(s) being defined in the sentence above?\nAnswer:",
+    "{text}\n\nWhat word or phrase is being defined in the sentence above?"
+]

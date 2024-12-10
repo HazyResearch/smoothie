@@ -1,0 +1,7 @@
+[
+    "{article}\n\nWrite a short summary of the article.\nSummary:",
+    "{article}\n\nWhat are the highlights of the article?\nSummary:",
+    "{article}\n\nProduce a few-sentence description of the article.\nSummary:",
+    "{article}\n\nSummarize the main takeaways from the article.\nSummary:",
+    "{article}\n\nWhat are the main points of the above article?\nSummary:"
+]

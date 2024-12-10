@@ -1,0 +1,8 @@
+dataset: gsm8k
+multi_prompt_template: gsm8k_multi_prompt
+multi_model_prompt_template: gsm8k_multi_model
+max_new_tokens: 200
+train_size: 250
+test_size: 1000
+metrics:
+  - gsm8k_acc

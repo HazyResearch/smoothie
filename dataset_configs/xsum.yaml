@@ -1,0 +1,8 @@
+dataset: xsum
+multi_prompt_template: xsum_multi_prompt
+multi_model_prompt_template: xsum_multi_model
+max_new_tokens: 30
+train_size: 250
+test_size: 1000
+metrics:
+  - rouge2

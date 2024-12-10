@@ -1,0 +1,8 @@
+# data 
+smoothie_data
+cache 
+
+# python
+**/*.pyc
+tutorials/.ipynb_checkpoints/
+misc

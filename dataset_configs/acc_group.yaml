@@ -1,0 +1,7 @@
+# This file contains the configuration for the accuracy group of tasks
+dataset: acc_group
+tasks:
+  - dataset_configs/squad.yaml # Configuration file for the first task
+  - dataset_configs/trivia_qa.yaml # Configuration file for the second task
+  - dataset_configs/definition_extraction.yaml # Configuration file for the third task
+max_new_tokens: 40
